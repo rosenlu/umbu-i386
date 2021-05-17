@@ -28,65 +28,79 @@ extern main                     ;defined in the C file
 start:
         cli                     ;block interrupts
         mov esp, stack_top    ;set stack pointer
-        
+
         lgdt [gdt_desc]
-        
+
+        mov ax, 16
+        mov ds, ax
+        mov es, ax
+        mov fs, ax
+        mov gs, ax
+        mov ss, ax
+
+	jmp 0x08:complete_flush
+
+complete_flush:
+
+
+
+
+
         mov eax, isr9
         mov [irq9_offset_lo], ax
         rol eax, 16
         mov [irq9_offset_hi], ax
-        
+
         mov eax, idt_desc
         lidt [eax]
-        
-        
+
+
         ; setup PICs
-        
+
         mov al, 0x11
         out PIC1_CMD, al
         out PIC2_CMD, al
-        
+
         mov al, 8
         out PIC1_DATA, al
         mov al, 16
         out PIC2_DATA, al
-        
+
         mov al, 4
         out PIC1_DATA, al
         mov al, 2
         out PIC2_DATA, al
-        
+
         mov al, 1
         out PIC1_DATA, al
         mov al, 1
         out PIC2_DATA, al
-        
-        
+
+
         mov al, 0xfd ;enable IRQ1
         out PIC1_DATA, al ;send mask to PIC1
-        
+
         sti ;enable interrupts
-        
-        
-        
-        
-        
+
+
+
+
+
 m0000:  mov dword [print_addr], 0x000b8000      ;vga memory area pointer
 
         mov byte [print_char], 'i'     ;print small 'i'
         call print
         call print
-        
+
         mov eax, 0xdeadbeef
         mov eax, isr9
-        rol eax, 16
-        
-        
+
+
 m0100:  jmp m0100
 
 m9000:  ;call main
         hlt                     ;halt the CPU
-        
+
 print:
         pushad
         mov ah, 0x0b ; cyan
@@ -98,26 +112,33 @@ print:
         mov dword [print_addr], ebx
         popad
         ret
-       
 
-       
+
+
 isr9:   cli
         pushad
-        
+
         mov ax, ds
         push eax
-        
+
         mov ax, 0x0010
         mov ds, ax
         mov es, ax
         mov ax, 0x0008
         mov fs, ax
         mov gs, ax
-        
+
         mov al, 0x20
         out PIC1_CMD, al ;ack
-        
-        
+
+	in al, 0x60
+	cmp al, 0x1e
+	jne i0900
+
+	mov byte [print_char], 'a'
+	call print
+
+
 i0900:  pop eax
         mov ds, ax
         mov es, ax
@@ -127,15 +148,15 @@ i0900:  pop eax
         popad
         sti
         iret
-        
-        
+
+
 
 
 
 gdt_start:
         ; NULL segment selector 0x0000
         dq 0x0000000000000000
-        
+
         ; KERNEL CODE selector 0x0008
         dw 0xffff ; limit 0:15
         dw 0x0000 ; base 0:15
@@ -143,7 +164,7 @@ gdt_start:
         db 0x9a ; access byte
         db 0xcf ; flags, limit 16:19
         db 0x00 ; base 24:31
-        
+
         ; KERNEL DATA selector 0x0010
         dw 0xffff ; limit 0:15
         dw 0x0000 ; base 0:15
@@ -151,7 +172,7 @@ gdt_start:
         db 0x92 ; access byte
         db 0xcf ; flags, limit 16:19
         db 0x00 ; base 24:31
-        
+
         ; USER CODE selector 0x0018
         dw 0xffff ; limit 0:15
         dw 0x0000 ; base 0:15
@@ -159,7 +180,7 @@ gdt_start:
         db 0xfa ; access byte
         db 0xcf ; flags, limit 16:19
         db 0x00 ; base 24:31
-        
+
         ; USER DATA selector 0x0020
         dw 0xffff ; limit 0:15
         dw 0x0000 ; base 0:15
@@ -188,7 +209,7 @@ section .data
 
 
 
-        
+
 idt_start:
 
 irq0:   dq 0
@@ -209,7 +230,7 @@ irq9_offset_lo:
         db 10001110b ; type_attr
 irq9_offset_hi:
         dw 0  ; offset bits 16..31
-        
+
 idt_end:
 
 
