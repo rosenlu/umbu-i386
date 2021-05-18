@@ -31,14 +31,7 @@ start:
 
         lgdt [gdt_desc]
 
-        mov ax, 16
-        mov ds, ax
-        mov es, ax
-        mov fs, ax
-        mov gs, ax
-        mov ss, ax
-
-	jmp 0x08:complete_flush
+        jmp 0x08:complete_flush
 
 complete_flush:
 
@@ -57,23 +50,22 @@ complete_flush:
 
         ; setup PICs
 
-        mov al, 0x11
+        mov al, 0x11 ; init
         out PIC1_CMD, al
         out PIC2_CMD, al
 
-        mov al, 8
+        mov al, 8 ; vector offset PIC1
         out PIC1_DATA, al
-        mov al, 16
+        mov al, 16 ; vector offset PIC2
         out PIC2_DATA, al
 
-        mov al, 4
+        mov al, 4 ; cascading
         out PIC1_DATA, al
-        mov al, 2
+        mov al, 2 ; cascading
         out PIC2_DATA, al
 
-        mov al, 1
+        mov al, 1 ; 8086 mode
         out PIC1_DATA, al
-        mov al, 1
         out PIC2_DATA, al
 
 
@@ -91,9 +83,6 @@ m0000:  mov dword [print_addr], 0x000b8000      ;vga memory area pointer
         mov byte [print_char], 'i'     ;print small 'i'
         call print
         call print
-
-        mov eax, 0xdeadbeef
-        mov eax, isr9
 
 
 m0100:  jmp m0100
@@ -118,37 +107,22 @@ print:
 isr9:   cli
         pushad
 
-        mov ax, ds
-        push eax
-
-        mov ax, 0x0010
-        mov ds, ax
-        mov es, ax
-        mov ax, 0x0008
-        mov fs, ax
-        mov gs, ax
-
         mov al, 0x20
         out PIC1_CMD, al ;ack
 
-	in al, 0x60
-	cmp al, 0x1e
-	jne i0900
+        mov eax, 0
+        in al, 0x60
+        mov bl, byte [kbd_map + eax]
+        cmp bl, 0
+        je i0900
 
-	mov byte [print_char], 'a'
-	call print
+        mov byte [print_char], bl
+        call print
 
 
-i0900:  pop eax
-        mov ds, ax
-        mov es, ax
-        mov fs, ax
-        mov gs, ax
-
-        popad
+i0900:  popad
         sti
         iret
-
 
 
 
@@ -196,11 +170,26 @@ gdt_desc:
         dd gdt_start
 
 
-
-
 idt_desc:
         dw idt_end - idt_start - 1
         dd idt_start
+
+
+
+kbd_map:
+        times 2 db 0
+        db '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'
+        times 4 db 0
+        db "qwertyuiop"
+        times 4 db 0
+        db "asdfghjkl"
+        times 5 db 0
+        db "zxcvbnm,."
+        times 4 db 0
+        db ' '
+
+        times (256 - $ + kbd_map) db 0
+kbd_map_end:
 
 
 
