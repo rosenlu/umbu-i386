@@ -127,6 +127,11 @@ i0900:  popad
 
 
 
+section .data
+
+
+
+
 gdt_start:
         ; NULL segment selector 0x0000
         dq 0x0000000000000000
@@ -190,12 +195,6 @@ kbd_map:
 
         times (256 - $ + kbd_map) db 0
 kbd_map_end:
-
-
-
-
-section .data
-
 
 
 
