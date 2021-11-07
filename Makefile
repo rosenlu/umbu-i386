@@ -10,7 +10,7 @@ BOOT_PATH := $(ISO_PATH)/boot
 GRUB_PATH := $(BOOT_PATH)/grub
 
 .PHONY: all
-all: boot kernel linker iso
+all: boot kernel linker
 	@echo Make has completed.
 
 boot: boot.asm
@@ -33,8 +33,8 @@ iso: $(BIN)
 clean:
 	$(RM) *.o $(BIN) $(ISO) $(ISO_PATH)
 
-run: $(ISO)
-	qemu-system-i386 -curses -cdrom $(ISO) -s -S
+run: $(BIN)
+	qemu-system-i386 -curses -kernel $(BIN) -s -S
 
 debug: $(BIN)
-	gdb -x umbu_gdb_startup $(BIN)
+	gdb -n -x scripts/gdb/gdb-dashboard/.gdbinit -x scripts/gdb/umbu_gdb_startup $(BIN)
